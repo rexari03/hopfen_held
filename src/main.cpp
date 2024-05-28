@@ -6,6 +6,21 @@
 
 BluetoothSerial SerialBT;
 
+//LED
+const int pinLEDL = 18;
+const int pinLEDLR = 27;
+const int pinLEDLG = 26;
+const int pinLEDLB = 25;
+
+const int pinLEDR = 19;
+const int pinLEDRR = 5;
+const int pinLEDRG = 17;
+const int pinLEDRB = 16;
+int ledState = HIGH;
+#define BLINK_INTERVAL 1000  // interval at which to blink LED (milliseconds)
+unsigned long previousMillis = 0;   
+
+
 // Drive Motor
 const int driverMotorPin1 = 17; 
 const int driveMotorPin2 = 16; 
@@ -46,8 +61,62 @@ String getValue(String data, char separator, int index)
     return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
 
+void blink(int LED_PIN, int LED_PIN_R, int LED_PIN_G, int LED_PIN_B, long currentMillis){
+  if (currentMillis - previousMillis >= BLINK_INTERVAL) {
+    // if the LED is off turn it on and vice-versa:
+    ledState = (ledState == LOW) ? HIGH : LOW;
+
+    // set the LED with the ledState of the variable:
+    digitalWrite(LED_PIN, ledState);
+    digitalWrite(LED_PIN_R, ledState);
+    digitalWrite(LED_PIN_G, ledState);
+    digitalWrite(LED_PIN_B, LOW);
+
+    // save the last time you blinked the LED
+    previousMillis = currentMillis;
+  }
+}
+
+void warnblinck(long currentMillis){
+  if (currentMillis - previousMillis >= BLINK_INTERVAL) {
+    // if the LED is off turn it on and vice-versa:
+    ledState = (ledState == LOW) ? HIGH : LOW;
+
+    // set the LED with the ledState of the variable:
+    digitalWrite(pinLEDR, ledState);
+    digitalWrite(pinLEDL, ledState);
+    digitalWrite(pinLEDLR, ledState);
+    digitalWrite(pinLEDLG, ledState);
+    digitalWrite(pinLEDLB, LOW);
+    digitalWrite(pinLEDRR, ledState);
+    digitalWrite(pinLEDRG, ledState);
+    digitalWrite(pinLEDRB, LOW);
+
+    // save the last time you blinked the LED
+    previousMillis = currentMillis;
+  }
+}
+
 
 void setup() {
+  //LED
+  pinMode(pinLEDL, OUTPUT); 
+  pinMode(pinLEDLR, OUTPUT); 
+  pinMode(pinLEDLG, OUTPUT); 
+  pinMode(pinLEDLB, OUTPUT); 
+  pinMode(pinLEDR, OUTPUT);
+  pinMode(pinLEDRR, OUTPUT); 
+  pinMode(pinLEDRG, OUTPUT); 
+  pinMode(pinLEDRB, OUTPUT); 
+  digitalWrite(pinLEDL, HIGH);
+  digitalWrite(pinLEDLR, HIGH);
+  digitalWrite(pinLEDLG, HIGH);
+  digitalWrite(pinLEDLB, HIGH);
+  digitalWrite(pinLEDR, HIGH);
+  digitalWrite(pinLEDRR, HIGH);
+  digitalWrite(pinLEDRG, HIGH);
+  digitalWrite(pinLEDRB, HIGH);
+
   // Pin setup drivemotor
   pinMode(driverMotorPin1, OUTPUT);
   pinMode(driveMotorPin2, OUTPUT);
@@ -89,10 +158,42 @@ void loop() {
 
     String steeringVal = getValue(receivedString, ';', 0);
     String throttleVal = getValue(receivedString, ';', 1);
+    String blinkVal = getValue(receivedString, ';', 2);
 
     float steeringValFloat = (std::stof(steeringVal.c_str())) * 100;
 
     float throttleValFloat = (std::stof(throttleVal.c_str())) * 100;
+
+    //LED
+    float blinkValFloat = (std::stof(blinkVal.c_str()));
+    unsigned long currentMillis = millis();
+
+    if(blinkValFloat == 1){
+      blink(pinLEDL, pinLEDLR, pinLEDLG, pinLEDLB, currentMillis);
+      digitalWrite(pinLEDR, HIGH);
+      digitalWrite(pinLEDRR, HIGH);
+      digitalWrite(pinLEDRG, HIGH);
+      digitalWrite(pinLEDRB, HIGH);
+    } else if(blinkValFloat == 2){
+      blink(pinLEDR,pinLEDRR, pinLEDRG, pinLEDRB, currentMillis);
+      digitalWrite(pinLEDL, HIGH);
+      digitalWrite(pinLEDLR, HIGH);
+      digitalWrite(pinLEDLG, HIGH);
+      digitalWrite(pinLEDLB, HIGH);
+    }else if(blinkValFloat == 3){
+      warnblinck(currentMillis);
+    }else{
+      digitalWrite(pinLEDL, HIGH);
+      digitalWrite(pinLEDLR, HIGH);
+      digitalWrite(pinLEDLG, HIGH);
+      digitalWrite(pinLEDLB, HIGH);
+      digitalWrite(pinLEDR, HIGH);
+      digitalWrite(pinLEDRR, HIGH);
+      digitalWrite(pinLEDRG, HIGH);
+      digitalWrite(pinLEDRB, HIGH);
+      ledState = HIGH;
+    }
+    
 
     // Changes motor direction
     if (throttleValFloat < 0) {

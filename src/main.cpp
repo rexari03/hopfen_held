@@ -3,21 +3,11 @@
 #include <BluetoothSerial.h>
 #include <cmath>
 #include <map>
+#include <Ultrasonic.h>
 
 BluetoothSerial SerialBT;
-
-//LED
-const int pinLEDL = 18;
-const int pinLEDLR = 27;
-const int pinLEDLG = 26;
-const int pinLEDLB = 25;
-
-const int pinLEDR = 19;
-const int pinLEDRR = 5;
-const int pinLEDRG = 17;
-const int pinLEDRB = 16;
 int ledState = HIGH;
-#define BLINK_INTERVAL 1000  // interval at which to blink LED (milliseconds)
+#define BLINK_INTERVAL 500  // interval at which to blink LED (milliseconds)
 unsigned long previousMillis = 0;   
 
 
@@ -34,20 +24,25 @@ const int waterMotorEnablePin = 19;
 const int waterMotorPWMChannel = 1;
 
 //Vorne Links
-const int leftRedPin = 25;
-const int leftGreenPin = 26;
-const int leftBluePin = 33;
+const int pinLEDLR = 25;
+const int pinLEDLG = 26;
+const int pinLEDLB = 33;
 
 //Vorne Rechts
-const int rightRedPin = 12;
-const int rightGreenPin = 14;
-const int rightBluePin = 27;
+const int pinLEDRR = 12;
+const int pinLEDRG = 14;
+const int pinLEDRB = 27;
 
 //Hinten Links
-const int leftLightPin = 35;
+const int pinLEDL = 34;
 
 //Hinten Rechts
-const int rightLightPin = 32;
+const int pinLEDR = 32;
+
+//Ultraschallsensor 
+//const int triggerPin = ;
+//const int echoPin = ;
+//Ultrasonic ultrasonic(triggerPin, echoPin);
 
 // Steering Servo
 const int servoPin = 21;
@@ -178,7 +173,7 @@ void loop() {
 
     String steeringVal = getValue(receivedString, ';', 0);
     String throttleVal = getValue(receivedString, ';', 1);
-    String blinkVal = getValue(receivedString, ';', 2);
+    String blinkVal = getValue(receivedString, ';', 4);
 
     float steeringValFloat = (std::stof(steeringVal.c_str())) * 100;
 

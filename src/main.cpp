@@ -18,9 +18,29 @@ const int waterMotorPin2 = 18;
 const int waterMotorEnablePin = 19;
 const int waterMotorPWMChannel = 1;
 
+//Vorne Links
+const int leftRedPin = 25;
+const int leftGreenPin = 26;
+const int leftBluePin = 33;
+
+//Vorne Rechts
+const int rightRedPin = 12;
+const int rightGreenPin = 14;
+const int rightBluePin = 27;
+
+//Hinten Links
+const int leftLightPin = 35;
+
+//Hinten Rechts
+const int rightLightPin = 32;
+
 // Steering Servo
 const int servoPin = 21;
 const int servoPinPWMChannel = 2;
+
+// Leiter Servo
+const int ladderPin = 2;
+const int ladderPWMChannel = 3;
 
 // Setting PWM properties
 const int freq = 3000;

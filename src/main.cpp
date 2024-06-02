@@ -34,15 +34,15 @@ const int pinLEDRG = 14;
 const int pinLEDRB = 27;
 
 //Hinten Links
-const int pinLEDL = 34;
+const int pinLEDL = 13;
 
 //Hinten Rechts
 const int pinLEDR = 32;
 
-//Ultraschallsensor 
-//const int triggerPin = ;
-//const int echoPin = ;
-//Ultrasonic ultrasonic(triggerPin, echoPin);
+// Ultraschallsensor 
+const int triggerPin = 15;
+const int echoPin = 23;
+Ultrasonic ultrasonic(triggerPin, echoPin);
 
 // Steering Servo
 const int servoPin = 21;
@@ -58,6 +58,9 @@ const int servoFreq = 50;
 const int resolution = 8;
 int dutyCycle = 200;
 const int servoRes = 12;
+
+
+bool reverse = false;
 
 // Extracts values from string
 String getValue(String data, char separator, int index)
@@ -132,6 +135,10 @@ void setup() {
   digitalWrite(pinLEDRG, HIGH);
   digitalWrite(pinLEDRB, HIGH);
 
+  // Ultraschallsensor 
+  pinMode(triggerPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
   // Pin setup drivemotor
   pinMode(driverMotorPin1, OUTPUT);
   pinMode(driveMotorPin2, OUTPUT);
@@ -157,6 +164,10 @@ void setup() {
   ledcSetup(servoPinPWMChannel, servoFreq, servoRes);
   ledcAttachPin(servoPin, servoPinPWMChannel);
 
+  // Ladder PWM setup
+  ledcSetup(ladderPWMChannel, servoFreq, servoRes);
+  ledcAttachPin(ladderPin, ladderPWMChannel);
+
   Serial.begin(9600);
 
   // Bluetooth setup
@@ -174,12 +185,16 @@ void loop() {
     String steeringVal = getValue(receivedString, ';', 0);
     String throttleVal = getValue(receivedString, ';', 1);
     String blinkVal = getValue(receivedString, ';', 4);
+    String autonomousVal = getValue(receivedString, ';', 6);
+    String ladderVal = getValue(receivedString, ';', 2);
+    String pumpVal = getValue(receivedString, ';', 3);
 
     float steeringValFloat = (std::stof(steeringVal.c_str())) * 100;
 
     float throttleValFloat = (std::stof(throttleVal.c_str())) * 100;
 
-    //LED
+    float autonomous = (std::stof(autonomousVal.c_str()));
+
     float blinkValFloat = (std::stof(blinkVal.c_str()));
     unsigned long currentMillis = millis();
 
@@ -208,39 +223,87 @@ void loop() {
       digitalWrite(pinLEDRB, HIGH);
       ledState = HIGH;
     }
-    
 
-    // Changes motor direction
-    if (throttleValFloat < 0) {
-      digitalWrite(driverMotorPin1, HIGH);
-      digitalWrite(driveMotorPin2, LOW);
-    }
-    else {
+    if (steeringValFloat == 0 && throttleValFloat == 0){
+      float ladderValFloat = (std::stof(ladderVal.c_str())) * 100;
+      float pumpValFloat = (std::stof(pumpVal.c_str()));
+      int ladderPulseWidth = map(ladderValFloat, 0, 100.0, 190, 310);
+
+      ledcWrite(ladderPWMChannel, ladderPulseWidth);
+      ledcWrite(servoPinPWMChannel, 297);
+      ledcWrite(driveMotorPWMChannel, 0);
       digitalWrite(driverMotorPin1, LOW);
-      digitalWrite(driveMotorPin2, HIGH);
+      digitalWrite(driveMotorPin2, LOW);
+
+      if (pumpValFloat == 1) {
+        digitalWrite(waterMotorPin1, HIGH);
+        digitalWrite(waterMotorPin2, LOW);
+        ledcWrite(waterMotorPWMChannel, 200);
+      } else {
+        ledcWrite(waterMotorPWMChannel, 0);
+        digitalWrite(waterMotorPin1, LOW);
+        digitalWrite(waterMotorPin2, LOW);
+      }
+
+      if (autonomous == 1) {
+        digitalWrite(pinLEDL, HIGH);
+        digitalWrite(pinLEDLR, HIGH);
+        digitalWrite(pinLEDLG, LOW);
+        digitalWrite(pinLEDLB, LOW);
+        digitalWrite(pinLEDR, HIGH);
+        digitalWrite(pinLEDRR, HIGH);
+        digitalWrite(pinLEDRG, LOW);
+        digitalWrite(pinLEDRB, LOW);
+        
+        int distanz = ultrasonic.read();
+        if (distanz <= 10) { 
+          digitalWrite(driverMotorPin1, LOW);
+          digitalWrite(driveMotorPin2, HIGH);
+        }
+        else {
+          digitalWrite(driverMotorPin1, HIGH);
+          digitalWrite(driveMotorPin2, LOW);
+        }
+
+        Serial.println(distanz);
+        if(distanz<=40){
+          reverse = false;
+          ledcWrite(servoPinPWMChannel, 492);
+        }else if(distanz>40){
+          reverse = false;
+          ledcWrite(servoPinPWMChannel, 297);
+        }else if(distanz<=10){
+          ledcWrite(servoPinPWMChannel, 102);
+        }
+        ledcWrite(driveMotorPWMChannel, 140); 
+      }
+    } else {
+      if(autonomous == 0){
+        // Changes motor direction
+        if (throttleValFloat < 0) {
+          digitalWrite(driverMotorPin1, HIGH);
+          digitalWrite(driveMotorPin2, LOW);
+        }
+        else {
+          digitalWrite(driverMotorPin1, LOW);
+          digitalWrite(driveMotorPin2, HIGH);
+        }
+
+        float absThrottleValue = std::abs(throttleValFloat);
+
+        int servoPulseWidth = map(steeringValFloat, -100.0, 100.0, 102, 492);
+        int throttlePulseWidth = map(absThrottleValue, 0, 100, 60, 200);
+
+        if(absThrottleValue == 0) {
+          throttlePulseWidth = 0;
+        }
+
+        // Sets different pwm signals
+        ledcWrite(servoPinPWMChannel, servoPulseWidth);
+        ledcWrite(driveMotorPWMChannel, throttlePulseWidth);
+      }
     }
-
-    float absThrottleValue = std::abs(throttleValFloat);
-
-    int servoPulseWidth = map(steeringValFloat, -100.0, 100.0, 102, 492);
-    int throttlePulseWidth = map(absThrottleValue, 0, 100, 60, 200);
-
-    if(absThrottleValue == 0) {
-      throttlePulseWidth = 0;
-    }
-
-    // Sets different pwm signals
-    ledcWrite(servoPinPWMChannel, servoPulseWidth);
-    ledcWrite(driveMotorPWMChannel, throttlePulseWidth);
-
-    delay(100);
-  }
-
-  // Bluetooth not connected
-  else {
-    ledcWrite(servoPinPWMChannel, 297);
-    ledcWrite(driveMotorPWMChannel, 0);
-    digitalWrite(driverMotorPin1, LOW);
-    digitalWrite(driveMotorPin2, LOW);
-  }
+    delay(50);
+    SerialBT.println("OK");
+  } 
 }
